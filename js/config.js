@@ -24,32 +24,73 @@ const CONFIG = {
         opacity: 0.1
     },
     audio: {
-        backgroundTempo: 120,
+        backgroundTempo: 140,
         baseVolume: 0.15,
         backgroundNotes: [
-            // Ambient pentatonic sequence
+            // Main melody with 8-bit feel
+            { note: 'E4', duration: 0.25 },
+            { note: 'G4', duration: 0.25 },
+            { note: 'B4', duration: 0.25 },
+            { note: 'E5', duration: 0.25 }, // Arpeggio up
+            { note: 'B4', duration: 0.25 },
+            { note: 'G4', duration: 0.25 },
+            { note: 'E4', duration: 0.5 }, // Arpeggio down
+            
+            { note: 'A4', duration: 0.25 },
+            { note: 'C5', duration: 0.25 },
+            { note: 'E5', duration: 0.25 },
+            { note: 'A5', duration: 0.25 }, // Second arpeggio up
+            { note: 'E5', duration: 0.25 },
+            { note: 'C5', duration: 0.25 },
+            { note: 'A4', duration: 0.5 }, // Second arpeggio down
+            
+            // Bridge section
+            { note: 'G4', duration: 0.25 },
+            { note: 'B4', duration: 0.25 },
+            { note: 'D5', duration: 0.25 },
+            { note: 'F5', duration: 0.25 }, // Tension building
+            { note: 'G5', duration: 0.5 },
+            { note: 'E5', duration: 0.5 }, // Resolution
+        ],
+        // Chiptune-style bass line
+        bassNotes: [
+            { note: 'E2', duration: 0.5 },
+            { note: 'E3', duration: 0.25 },
+            { note: 'E2', duration: 0.25 },
+            { note: 'A2', duration: 0.5 },
+            { note: 'A3', duration: 0.25 },
+            { note: 'A2', duration: 0.25 },
+            { note: 'G2', duration: 0.5 },
+            { note: 'G3', duration: 0.25 },
+            { note: 'G2', duration: 0.25 },
             { note: 'C3', duration: 0.5 },
-            { note: 'E3', duration: 0.5 },
-            { note: 'G3', duration: 0.5 },
-            { note: 'A3', duration: 0.5 },
-            { note: 'C4', duration: 0.5 },
-            { note: 'A3', duration: 0.5 },
-            { note: 'G3', duration: 0.5 },
-            { note: 'E3', duration: 0.5 }
+            { note: 'C4', duration: 0.25 },
+            { note: 'C3', duration: 0.25 }
+        ],
+        // Add arpeggio patterns
+        arpeggios: [
+            { note: 'E4', duration: 0.125 },
+            { note: 'G4', duration: 0.125 },
+            { note: 'B4', duration: 0.125 },
+            { note: 'E5', duration: 0.125 }
         ],
         sfx: {
             eat: [
-                { note: 'E4', duration: 0.1, volume: 0.2 },
-                { note: 'G4', duration: 0.1, volume: 0.2 }
+                { note: 'E5', duration: 0.1, volume: 0.2 },
+                { note: 'G5', duration: 0.1, volume: 0.15 },
+                { note: 'B5', duration: 0.1, volume: 0.1 }
             ],
             death: [
-                { note: 'C3', duration: 0.2, volume: 0.3 },
-                { note: 'G2', duration: 0.3, volume: 0.3 }
+                { note: 'E4', duration: 0.1, volume: 0.3 },
+                { note: 'E3', duration: 0.1, volume: 0.3 },
+                { note: 'E2', duration: 0.3, volume: 0.3 },
+                { note: 'Eb2', duration: 0.4, volume: 0.2 }
             ],
             specialFood: [
-                { note: 'C5', duration: 0.1, volume: 0.2 },
-                { note: 'E5', duration: 0.1, volume: 0.2 },
-                { note: 'G5', duration: 0.1, volume: 0.2 }
+                { note: 'E6', duration: 0.1, volume: 0.15 },
+                { note: 'G6', duration: 0.1, volume: 0.15 },
+                { note: 'B6', duration: 0.1, volume: 0.15 },
+                { note: 'E7', duration: 0.2, volume: 0.1 }
             ]
         }
     },

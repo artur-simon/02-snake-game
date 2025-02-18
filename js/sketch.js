@@ -190,6 +190,8 @@ function drawGrid() {
 
 function drawUI() {
     push();
+    
+    // Score display
     fill(0, 255, 0);
     noStroke();
     textSize(20);
@@ -197,44 +199,111 @@ function drawUI() {
     text(`Score: ${score}`, 20, 20);
     
     if (gameOver) {
+        // Game over panel
+        fill(0, 0, 0, 200);
+        stroke(0, 255, 0);
+        strokeWeight(2);
+        rectMode(CENTER);
+        rect(width/2, height/2, 400, 250, 10);
+        
+        // Game over text with glow
+        drawingContext.shadowBlur = 15;
+        drawingContext.shadowColor = '#ff0000';
+        fill(255, 0, 0);
+        noStroke();
         textAlign(CENTER, CENTER);
         textSize(32);
-        text('GAME OVER', width/2, height/2 - 40);
+        text('GAME OVER', width/2, height/2 - 80);
         
         if (isNewHighScore) {
+            // High score text with glow
+            drawingContext.shadowBlur = 15;
+            drawingContext.shadowColor = '#00ff00';
+            fill(0, 255, 0);
             textSize(24);
-            text('NEW HIGH SCORE!', width/2, height/2);
-            text('Enter your name:', width/2, height/2 + 40);
+            text('NEW HIGH SCORE!', width/2, height/2 - 20);
+            
+            // Input field background
+            fill(0, 0, 0, 150);
+            stroke(0, 255, 0);
+            strokeWeight(1);
+            rectMode(CENTER);
+            rect(width/2, height/2 + 80, 200, 40, 5);
+            
+            // Name input text
+            noStroke();
+            text('Enter your name:', width/2, height/2 + 30);
             text(playerName + '_', width/2, height/2 + 80);
         } else {
+            // Restart instruction with pulse
+            const pulseIntensity = sin(frameCount * 0.05) * 127 + 128;
+            fill(0, pulseIntensity, 0);
             textSize(20);
             text('Press SPACE to restart', width/2, height/2 + 40);
         }
     } else if (showingLeaderboard || !gameStarted) {
         drawLeaderboard();
     }
+    
     pop();
 }
 
 function drawLeaderboard() {
     push();
+    
+    // Background panel
+    fill(0, 0, 0, 200);
+    stroke(0, 255, 0);
+    strokeWeight(2);
+    rectMode(CENTER);
+    rect(width/2, height/2, 300, 400, 10); // Rounded corners
+    
+    // Title with glow
+    drawingContext.shadowBlur = 15;
+    drawingContext.shadowColor = '#00ff00';
+    fill(0, 255, 0);
+    noStroke();
     textAlign(CENTER);
     textSize(32);
     text('TOP SCORES', width/2, height/4);
     
+    // Reset glow for other text
+    drawingContext.shadowBlur = 0;
+    
     textSize(20);
     textAlign(CENTER);
     let y = height/3;
+    
+    // Scores list
     highScores.slice(0, CONFIG.ranking.maxScores).forEach((entry, i) => {
-        fill(i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#00ff00');
+        // Medal colors with glow
+        const colors = {
+            0: { fill: '#FFD700', glow: '#FFD700' }, // Gold
+            1: { fill: '#C0C0C0', glow: '#C0C0C0' }, // Silver
+            2: { fill: '#CD7F32', glow: '#CD7F32' }  // Bronze
+        };
+        
+        if (i < 3) {
+            drawingContext.shadowBlur = 10;
+            drawingContext.shadowColor = colors[i].glow;
+            fill(colors[i].fill);
+        } else {
+            fill(0, 255, 0);
+        }
+        
         text(`${i + 1}. ${entry.name}: ${entry.score}`, width/2, y);
         y += 30;
     });
     
     if (!gameStarted) {
-        fill('#00ff00');
+        // Instruction text with pulsing effect
+        const pulseIntensity = sin(frameCount * 0.05) * 127 + 128;
+        fill(0, pulseIntensity, 0);
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = '#00ff00';
         text('Press SPACE to start', width/2, height - 100);
     }
+    
     pop();
 }
 
@@ -260,8 +329,32 @@ function keyPressed() {
         initAudio();
     }
 
+    if ((key === 'D' || key === 'd') && keyIsDown(ALT)) {
+        console.log('Debug panel toggled');
+        showDebug = !showDebug;
+        return;
+    }
+
+    // Handle high score input first
+    if (gameOver && isNewHighScore) {
+        if (keyCode === ENTER && playerName.length > 0) {
+            console.log(`Saving high score for ${playerName}: ${score}`);
+            saveScore(playerName, score);
+            isNewHighScore = false;
+            playerName = "";
+            // Now the game can be reset
+            gameOver = true;  // Keep game over state
+        } else if (keyCode === BACKSPACE) {
+            playerName = playerName.slice(0, -1);
+        } else if (keyCode >= 48 && keyCode <= 90 && playerName.length < 10) {
+            playerName += key;
+        }
+        return;  // Prevent any other key handling during high score input
+    }
+
+    // Only handle space key when not entering high score
     if (key === ' ') {
-        if (gameOver) {
+        if (gameOver && !isNewHighScore) {  // Only reset if not entering high score
             resetGame();
         } else if (!gameStarted) {
             gameStarted = true;
@@ -269,28 +362,11 @@ function keyPressed() {
         }
     }
 
+    // Movement controls
     if (keyCode === UP_ARROW) snake.setDirection(0, -1);
     if (keyCode === DOWN_ARROW) snake.setDirection(0, 1);
     if (keyCode === LEFT_ARROW) snake.setDirection(-1, 0);
     if (keyCode === RIGHT_ARROW) snake.setDirection(1, 0);
-    
-    if (key === 'D' || key === 'd') {
-        showDebug = !showDebug;
-    }
-
-    if (gameOver && isNewHighScore) {
-        if (keyCode === ENTER && playerName.length > 0) {
-            console.log(`Saving high score for ${playerName}: ${score}`);
-            saveScore(playerName, score);
-            isNewHighScore = false;
-            playerName = "";
-        } else if (keyCode === BACKSPACE) {
-            playerName = playerName.slice(0, -1);
-        } else if (keyCode >= 48 && keyCode <= 90 && playerName.length < 10) {
-            playerName += key;
-        }
-        return;
-    }
 }
 
 function resetGame() {
@@ -350,14 +426,29 @@ class Sequencer {
         // Connect nodes
         this.filter.connect(this.mainGain);
         this.mainGain.connect(this.audioCtx.destination);
+        
+        // Add square wave oscillator for chiptune sound
+        this.oscType = 'square';
+        
+        // Add arpeggiator state
+        this.arpCounter = 0;
+        this.arpSpeed = 16; // 16th notes for arpeggios
     }
 
     play() {
-        this.isPlaying = true;
+        if (!this.isPlaying) {
+            console.log('Starting background music...');
+            this.isPlaying = true;
+            this.noteTime = this.audioCtx.currentTime;
+            this.currentNote = 0;
+            this.scheduleNotes(); // Start scheduling notes
+        }
     }
 
     stop() {
+        console.log('Stopping background music...');
         this.isPlaying = false;
+        // No need to explicitly stop scheduled notes as they'll stop on next check
     }
 
     scheduleNotes() {
@@ -382,19 +473,68 @@ class Sequencer {
         this.noteTime += secondsPerBeat;
     }
 
-    playNote(note, time, duration) {
+    playNote(note, time, duration, isBass) {
         const osc = this.audioCtx.createOscillator();
         const gainNode = this.audioCtx.createGain();
         
+        // Use square wave for melody, triangle for bass
+        osc.type = isBass ? 'triangle' : this.oscType;
+        
+        // Add slight detuning for richer sound
+        const detune = isBass ? 0 : (Math.random() - 0.5) * 5;
+        osc.detune.value = detune;
+        
+        // Connect through filter chain
+        osc.connect(gainNode);
+        gainNode.connect(isBass ? this.bassFilter : this.filter);
+        
+        const freq = noteToFreq(note);
+        osc.frequency.value = freq;
+        
+        // Chiptune-style envelope
+        gainNode.gain.setValueAtTime(0.001, time);
+        gainNode.gain.linearRampToValueAtTime(
+            isBass ? 0.4 : 0.2,
+            time + 0.01 // Quick attack
+        );
+        gainNode.gain.setValueAtTime(
+            isBass ? 0.3 : 0.15,
+            time + duration - 0.05 // Hold
+        );
+        gainNode.gain.linearRampToValueAtTime(
+            0.001,
+            time + duration // Quick release
+        );
+        
+        osc.start(time);
+        osc.stop(time + duration);
+
+        // Add arpeggio notes if it's a melody note
+        if (!isBass && duration > 0.3) {
+            CONFIG.audio.arpeggios.forEach((arpNote, i) => {
+                const arpTime = time + (i * duration / this.arpSpeed);
+                if (arpTime < time + duration) {
+                    this.playArpeggioNote(arpNote.note, arpTime, duration / this.arpSpeed);
+                }
+            });
+        }
+    }
+
+    playArpeggioNote(note, time, duration) {
+        const osc = this.audioCtx.createOscillator();
+        const gainNode = this.audioCtx.createGain();
+        
+        osc.type = 'square';
         osc.connect(gainNode);
         gainNode.connect(this.filter);
         
         const freq = noteToFreq(note);
         osc.frequency.value = freq;
         
+        // Very short envelope for arpeggio notes
         gainNode.gain.setValueAtTime(0.001, time);
-        gainNode.gain.exponentialRampToValueAtTime(0.3, time + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        gainNode.gain.linearRampToValueAtTime(0.1, time + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0.001, time + duration);
         
         osc.start(time);
         osc.stop(time + duration);
@@ -450,7 +590,7 @@ function toggleAudio() {
         document.getElementById('muteButton').textContent = '🔇';
     } else {
         console.log('Audio started');
-        backgroundSequencer.play();
+        backgroundSequencer.play(); // This will now properly start the music
         document.getElementById('muteButton').textContent = '🔊';
     }
 }
