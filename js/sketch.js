@@ -7,9 +7,15 @@ let gameOver = false;
 let showDebug = false;
 let audioCtx;
 let backgroundSequencer;
+let highScores = [];
+let isNewHighScore = false;
+let playerName = "";
+let showingLeaderboard = false;
+let database;
 
 class Snake {
     constructor() {
+        console.log('Creating new snake...');
         this.body = [];
         this.size = CONFIG.game.gridSize;
         this.direction = createVector(1, 0);
@@ -23,10 +29,14 @@ class Snake {
         for (let i = 0; i < CONFIG.snake.initialLength; i++) {
             this.body.push(createVector(startX - i * this.size, startY));
         }
+        console.log(`Snake created at position (${startX}, ${startY})`);
     }
 
     update() {
         if (!gameStarted) return;
+        
+        // Log movement
+        console.log(`Snake moving: ${this.direction.x}, ${this.direction.y}`);
 
         // Update direction
         this.direction = this.nextDirection.copy();
@@ -45,9 +55,10 @@ class Snake {
         if (this.body[0].y < 0) this.body[0].y = height - this.size;
         if (this.body[0].y >= height) this.body[0].y = 0;
 
-        // Check self collision
+        // Log collisions
         for (let i = 1; i < this.body.length; i++) {
             if (this.body[0].equals(this.body[i])) {
+                console.log('Snake collision detected!');
                 gameOver = true;
                 playSfx(CONFIG.audio.sfx.death);
             }
@@ -79,21 +90,25 @@ class Snake {
     }
 
     grow() {
+        console.log(`Snake growing! New length: ${this.body.length + 1}`);
         // Add new segment at the end of the snake
         const tail = this.body[this.body.length - 1].copy();
         this.body.push(tail);
         
         // Increase speed
         this.speed = min(this.speed + CONFIG.game.speedIncrease, CONFIG.game.maxSpeed);
+        console.log(`Speed increased to: ${this.speed}`);
     }
 }
 
 class Food {
     constructor() {
+        console.log('Spawning new food...');
         this.size = CONFIG.game.gridSize;
         this.pos = this.getRandomPosition();
         this.isSpecial = random() < CONFIG.food.specialFoodChance;
         this.glowIntensity = 0;
+        console.log(`Food spawned at (${this.pos.x}, ${this.pos.y}), Special: ${this.isSpecial}`);
     }
 
     getRandomPosition() {
@@ -124,10 +139,13 @@ class Food {
 }
 
 function setup() {
+    console.log('Game Initializing...');
     createCanvas(600, 600);
     snake = new Snake();
     food = new Food();
     gridSize = CONFIG.game.gridSize;
+    initializeFirebase();
+    console.log('Game Initialized');
 }
 
 function draw() {
@@ -181,30 +199,63 @@ function drawUI() {
     if (gameOver) {
         textAlign(CENTER, CENTER);
         textSize(32);
-        text('GAME OVER', width/2, height/2);
-        textSize(20);
-        text('Press SPACE to restart', width/2, height/2 + 40);
-    } else if (!gameStarted) {
-        textAlign(CENTER, CENTER);
-        textSize(32);
-        text('NEURAL SNAKE', width/2, height/2);
-        textSize(20);
-        text('Use arrow keys to move', width/2, height/2 + 40);
-        text('Press SPACE to start', width/2, height/2 + 70);
+        text('GAME OVER', width/2, height/2 - 40);
+        
+        if (isNewHighScore) {
+            textSize(24);
+            text('NEW HIGH SCORE!', width/2, height/2);
+            text('Enter your name:', width/2, height/2 + 40);
+            text(playerName + '_', width/2, height/2 + 80);
+        } else {
+            textSize(20);
+            text('Press SPACE to restart', width/2, height/2 + 40);
+        }
+    } else if (showingLeaderboard || !gameStarted) {
+        drawLeaderboard();
+    }
+    pop();
+}
+
+function drawLeaderboard() {
+    push();
+    textAlign(CENTER);
+    textSize(32);
+    text('TOP SCORES', width/2, height/4);
+    
+    textSize(20);
+    textAlign(CENTER);
+    let y = height/3;
+    highScores.slice(0, CONFIG.ranking.maxScores).forEach((entry, i) => {
+        fill(i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#00ff00');
+        text(`${i + 1}. ${entry.name}: ${entry.score}`, width/2, y);
+        y += 30;
+    });
+    
+    if (!gameStarted) {
+        fill('#00ff00');
+        text('Press SPACE to start', width/2, height - 100);
     }
     pop();
 }
 
 function checkFoodCollision() {
     if (snake.body[0].equals(food.pos)) {
+        console.log(`Food collected! Score: ${score} -> ${score + (food.isSpecial ? CONFIG.food.specialFoodPoints : 1)}`);
         score += food.isSpecial ? CONFIG.food.specialFoodPoints : 1;
         snake.grow();
         food = new Food();
         playSfx(food.isSpecial ? CONFIG.audio.sfx.specialFood : CONFIG.audio.sfx.eat);
+        
+        // Check for high score
+        if (checkHighScore(score)) {
+            console.log('New high score achieved!');
+        }
     }
 }
 
 function keyPressed() {
+    console.log(`Key pressed: ${key} (code: ${keyCode})`);
+    
     if (!audioCtx) {
         initAudio();
     }
@@ -226,23 +277,46 @@ function keyPressed() {
     if (key === 'D' || key === 'd') {
         showDebug = !showDebug;
     }
+
+    if (gameOver && isNewHighScore) {
+        if (keyCode === ENTER && playerName.length > 0) {
+            console.log(`Saving high score for ${playerName}: ${score}`);
+            saveScore(playerName, score);
+            isNewHighScore = false;
+            playerName = "";
+        } else if (keyCode === BACKSPACE) {
+            playerName = playerName.slice(0, -1);
+        } else if (keyCode >= 48 && keyCode <= 90 && playerName.length < 10) {
+            playerName += key;
+        }
+        return;
+    }
 }
 
 function resetGame() {
+    console.log('Resetting game...');
     snake = new Snake();
     food = new Food();
     score = 0;
     gameStarted = false;
     gameOver = false;
+    isNewHighScore = false;
+    playerName = "";
+    console.log('Game reset complete');
 }
 
 // Audio Functions
 function initAudio() {
-    if (audioCtx) return; // Prevent multiple initializations
+    console.log('Initializing audio...');
+    if (audioCtx) {
+        console.log('Audio already initialized');
+        return;
+    }
     
     try {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         backgroundSequencer = new Sequencer(audioCtx, CONFIG.audio.backgroundTempo);
+        console.log('Audio initialization successful');
         return true;
     } catch (e) {
         console.error('Audio initialization failed:', e);
@@ -365,14 +439,17 @@ function playSfx(notes) {
 }
 
 function toggleAudio() {
+    console.log('Toggling audio...');
     if (!audioCtx) {
         if (!initAudio()) return;
     }
     
     if (backgroundSequencer.isPlaying) {
+        console.log('Audio stopped');
         backgroundSequencer.stop();
         document.getElementById('muteButton').textContent = '🔇';
     } else {
+        console.log('Audio started');
         backgroundSequencer.play();
         document.getElementById('muteButton').textContent = '🔊';
     }
@@ -446,4 +523,59 @@ function drawDebugPanel() {
     text(`└─ Audio: ${audioCtx ? (backgroundSequencer?.isPlaying ? 'PLAYING' : 'MUTED') : 'NOT INIT'}`, 30, y);
 
     pop();
+}
+
+function initializeFirebase() {
+    console.log('Initializing Firebase...');
+    database = firebase.database();
+    loadHighScores();
+}
+
+function loadHighScores() {
+    console.log('Loading high scores...');
+    database.ref('scores').orderByChild('score').limitToLast(CONFIG.ranking.maxScores).once('value')
+        .then((snapshot) => {
+            highScores = [];
+            snapshot.forEach((childSnapshot) => {
+                highScores.unshift(childSnapshot.val());
+            });
+            console.log('High scores loaded:', highScores);
+        })
+        .catch((error) => {
+            console.error("Error loading scores:", error);
+            console.log('Falling back to default scores');
+            highScores = CONFIG.ranking.defaultNames.map((name, i) => ({
+                name: name,
+                score: CONFIG.ranking.defaultScores[i]
+            }));
+        });
+}
+
+function saveScore(name, score) {
+    console.log(`Attempting to save score - Name: ${name}, Score: ${score}`);
+    const newScore = {
+        name: name,
+        score: score,
+        timestamp: Date.now()
+    };
+    console.log('New score object:', newScore);
+    
+    database.ref('scores').push(newScore)
+        .then(() => {
+            console.log('Score saved successfully');
+            loadHighScores();
+        })
+        .catch((error) => {
+            console.error("Error saving score:", error);
+        });
+}
+
+function checkHighScore(score) {
+    console.log(`Checking if ${score} is a high score...`);
+    const isHigh = highScores.length < CONFIG.ranking.maxScores || score > highScores[highScores.length - 1].score;
+    console.log(`High score check result: ${isHigh}`);
+    if (isHigh) {
+        isNewHighScore = true;
+    }
+    return isHigh;
 }

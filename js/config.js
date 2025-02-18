@@ -57,5 +57,10 @@ const CONFIG = {
         showGrid: true,
         showCollisions: true,
         showFPS: true
+    },
+    ranking: {
+        maxScores: 10,
+        defaultNames: ["CPU_01", "CPU_02", "CPU_03", "CPU_04", "CPU_05", "CPU_06", "CPU_07", "CPU_08", "CPU_09", "CPU_10"],
+        defaultScores: [100, 80, 60, 40, 20, 10, 5, 3, 2, 1]
     }
 };
